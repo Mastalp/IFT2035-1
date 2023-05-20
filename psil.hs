@@ -229,7 +229,7 @@ data Ldec = Ldec Var Ltype      -- Déclaration globale.
 s2t :: Sexp -> Ltype
 s2t (Ssym "Int") = Lint
 -- ¡¡COMPLÉTER ICI!!
-s2t (Ssym "Int -> Int") = Larw Lint Lint
+s2t (Scons t1 (Scons (Ssym "->") t2)) = Larw (s2t t1) (s2t t2)
 s2t se = error ("Type Psil inconnu: " ++ (showSexp se))
 
 s2l :: Sexp -> Lexp
@@ -279,6 +279,7 @@ tenv0 = [("+", Larw Lint (Larw Lint Lint)),
 -- `check Γ e τ` vérifie que `e` a type `τ` dans le contexte `Γ`.
 check :: TEnv -> Lexp -> Ltype -> Maybe TypeError
 -- ¡¡COMPLÉTER ICI!!
+
 check tenv e t
   -- Essaie d'inférer le type et vérifie alors s'il correspond au
   -- type attendu.
@@ -296,6 +297,7 @@ synth tenv (Lhastype e t) =
       Nothing -> t
       Just err -> error err
 -- ¡¡COMPLÉTER ICI!!
+
 synth _tenv e = error ("Incapable de trouver le type de: " ++ (show e))
 
         
@@ -333,6 +335,7 @@ eval venv (Lvar x) = mlookup venv x
 -- ¡¡COMPLÉTER ICI!!
 
 
+
 -- État de l'évaluateur.
 type EState = ((TEnv, VEnv),       -- Contextes de typage et d'évaluation.
                Maybe (Var, Ltype), -- Déclaration en attente d'une définition.
@@ -353,6 +356,7 @@ process_decl ((tenv, venv), Nothing, res) (Ldef x e) =
         venv' = minsert venv x val
     in ((tenv', venv'), Nothing, (val, ltype) : res)
 -- ¡¡COMPLÉTER ICI!! 
+
 
 ---------------------------------------------------------------------------
 -- Toplevel                                                              --
