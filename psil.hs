@@ -1,5 +1,20 @@
 -- TP-1  --- Implantation d'une sorte de Lisp          -*- coding: utf-8 -*-
 {-# OPTIONS_GHC -Wall #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
+{-# HLINT ignore "Use camelCase" #-}
+{-# HLINT ignore "Avoid lambda using `infix`" #-}
+{-# HLINT ignore "Redundant bracket" #-}
+{-# HLINT ignore "Use <$>" #-}
+{-# HLINT ignore "Replace case with maybe" #-}
+{-# HLINT ignore "Use record patterns" #-}
+{-# HLINT ignore "Use const" #-}
+{-# HLINT ignore "Use id" #-}
+{-# HLINT ignore "Use concatMap" #-}
+{-# HLINT ignore "Use putStr" #-}
+{-# HLINT ignore "Use shows" #-}
+{-# OPTIONS_GHC -Wno-overlapping-patterns #-}
 --
 -- Ce fichier défini les fonctionalités suivantes:
 -- - Analyseur lexical
@@ -214,17 +229,23 @@ data Ldec = Ldec Var Ltype      -- Déclaration globale.
 s2t :: Sexp -> Ltype
 s2t (Ssym "Int") = Lint
 -- ¡¡COMPLÉTER ICI!!
+s2t (Ssym "Int -> Int") = Larw Lint Lint
 s2t se = error ("Type Psil inconnu: " ++ (showSexp se))
 
 s2l :: Sexp -> Lexp
 s2l (Snum n) = Lnum n
 s2l (Ssym s) = Lvar s
 -- ¡¡COMPLÉTER ICI!!
+s2l (Scons e1 e2) = Lapp (s2l e1) (s2l e2)
+s2l (Scons (Ssym ":") (Scons e t)) = Lhastype (s2l e) (s2t t)
+s2l (Scons (Ssym "let") (Scons (Ssym v) (Scons e1 e2))) = Llet v (s2l e1) (s2l e2)
+s2l (Scons (Ssym "lambda") (Scons (Ssym v) e)) = Lfun v (s2l e)
 s2l se = error ("Expression Psil inconnue: " ++ (showSexp se))
 
 s2d :: Sexp -> Ldec
 s2d (Scons (Scons (Scons Snil (Ssym "def")) (Ssym v)) e) = Ldef v (s2l e)
 -- ¡¡COMPLÉTER ICI!!
+s2d (Scons (Scons (Scons Snil (Ssym "dec")) (Ssym v)) t) = Ldec v (s2t t)
 s2d se = error ("Déclaration Psil inconnue: " ++ showSexp se)
 
 ---------------------------------------------------------------------------
@@ -320,7 +341,7 @@ type EState = ((TEnv, VEnv),       -- Contextes de typage et d'évaluation.
 -- Évalue une déclaration, y compris vérification des types.
 process_decl :: EState -> Ldec -> EState
 process_decl (env, Nothing, res) (Ldec x t) = (env, Just (x,t), res)
-process_decl (env, Just (x', _), res) (decl @ (Ldec _ _)) =
+process_decl (env, Just (x', _), res) decl@(Ldec _ _) =
     process_decl (env, Nothing,
                   error ("Manque une définition pour: " ++ x') : res)
                  decl
