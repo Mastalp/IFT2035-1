@@ -222,24 +222,33 @@ data Lexp = Lnum Int            -- Constante entière.
 data Ldec = Ldec Var Ltype      -- Déclaration globale.
           | Ldef Var Lexp       -- Définition globale.
           deriving (Show, Eq)
-          
+
 
 -- Conversion de Sexp à Lambda --------------------------------------------
 
 s2t :: Sexp -> Ltype
 s2t (Ssym "Int") = Lint
 -- ¡¡COMPLÉTER ICI!!
-s2t (Scons t1 (Scons (Ssym "->") t2)) = Larw (s2t t1) (s2t t2)
+s2t (Scons Snil int) = s2t int
+s2t (Scons (Scons (Scons Snil t1) (Ssym "->")) t2) = Larw (s2t t1) (s2t t2)
+s2t (Scons (Scons t1t2 (Ssym "->")) t3) = Larw (s2t t1t2) (s2t t3)
 s2t se = error ("Type Psil inconnu: " ++ (showSexp se))
 
 s2l :: Sexp -> Lexp
 s2l (Snum n) = Lnum n
 s2l (Ssym s) = Lvar s
 -- ¡¡COMPLÉTER ICI!!
-s2l (Scons e1 e2) = Lapp (s2l e1) (s2l e2)
-s2l (Scons (Ssym ":") (Scons e t)) = Lhastype (s2l e) (s2t t)
-s2l (Scons (Ssym "let") (Scons (Ssym v) (Scons e1 e2))) = Llet v (s2l e1) (s2l e2)
-s2l (Scons (Ssym "lambda") (Scons (Ssym v) e)) = Lfun v (s2l e)
+s2l (Scons (Scons (Scons Snil e) (Ssym ":")) t) = Lhastype (s2l e) (s2t t)
+s2l (Scons (Scons (Scons (Scons Snil (Ssym "let")) (Ssym v)) e1) e2) = Llet v (s2l e1) (s2l e2)
+s2l (Scons (Scons (Scons Snil (Ssym "lambda")) (Ssym v)) e) = Lfun v (s2l e)
+
+-- Not sure this is right 
+s2l (Scons (Scons Snil e1) e2) = case s2l e1 of 
+  Lvar v -> Lapp (Lvar v) (s2l e2)
+  Lfun v e -> Lapp (Lfun v e) (s2l e2)
+  Lapp f arg -> Lapp (Lapp f arg) (s2l e2)
+  _ -> error "pas un appel de fonction valide!"
+
 s2l se = error ("Expression Psil inconnue: " ++ (showSexp se))
 
 s2d :: Sexp -> Ldec
@@ -297,10 +306,34 @@ synth tenv (Lhastype e t) =
       Nothing -> t
       Just err -> error err
 -- ¡¡COMPLÉTER ICI!!
+-- Lapp, Llet et Lfun
+synth tenv (Lfun v e) =
+  let
+    t1 = Lint -- Assume a type
+    extEnv = minsert tenv v t1
+    t2 = synth extEnv e 
+  in 
+    Larw t1 t2 -- la fonction a le bon type
+
+synth tenv (Lapp e1 e2) =
+  let
+    t1 = synth tenv e1
+  in case t1 of
+    Larw t11 t12 ->
+      case check tenv e2 t11 of
+        Nothing -> t12
+        Just err -> error err
+    _ -> error "not a function!"
+
+synth tenv (Llet v e1 e2) =
+  let t1 = synth tenv e1
+  in synth (minsert tenv v t1) e2
+
+
 
 synth _tenv e = error ("Incapable de trouver le type de: " ++ (show e))
 
-        
+
 ---------------------------------------------------------------------------
 -- Évaluateur                                                            --
 ---------------------------------------------------------------------------
