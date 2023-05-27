@@ -242,15 +242,17 @@ s2l (Scons (Scons (Scons Snil e) (Ssym ":")) t) = Lhastype (s2l e) (s2t t)
 s2l (Scons (Scons (Scons (Scons Snil (Ssym "let")) (Ssym v)) e1) e2) = Llet v (s2l e1) (s2l e2)
 s2l (Scons (Scons (Scons Snil (Ssym "lambda")) (Ssym v)) e) = Lfun v (s2l e)
 
+-- malformed exp catch
 s2l (Scons (Scons Snil (Ssym "let")) _) = error "malformed let expression!"
 
-s2l (Scons Snil e1) = s2l e1
+-- pairs of exp
+s2l (Scons Snil e1) = s2l e1 -- base case
 s2l (Scons e1 e2) = s2l' (s2l e1) e2
   where 
-    s2l' exp1 Snil = exp1
     s2l' exp1 (Scons exp2 exp3) = s2l' (Lapp exp1 (s2l exp2)) exp3
     s2l' exp1 exp2 = Lapp exp1 (s2l exp2)
 
+-- IMPOSSIBLE TO REACH 
 s2l se = error ("Expression Psil inconnue: " ++ (showSexp se))
 
 s2d :: Sexp -> Ldec
