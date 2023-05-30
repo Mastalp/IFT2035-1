@@ -226,21 +226,25 @@ data Ldec = Ldec Var Ltype      -- Déclaration globale.
 
 -- Conversion de Sexp à Lambda --------------------------------------------
 
+
 auxFunc :: Sexp -> [Sexp]
 auxFunc Snil = [] -- 
 auxFunc (Snum i) = [Snum i]
 auxFunc (Ssym v) = [Ssym v]
 auxFunc (Scons e1 e2) = auxFunc e1 ++ auxFunc e2
 
+
 s2t :: Sexp -> Ltype
 s2t (Ssym "Int") = Lint
 -- ¡¡COMPLÉTER ICI!!
 s2t (Scons Snil int) = s2t int
 s2t (Scons (Scons (Scons Snil t1) (Ssym "->")) t2) = Larw (s2t t1) (s2t t2)
+
 s2t se = aux2 (tail (auxFunc se))
 --    if x == (Ssym "->") then Larw (s2t x) 
 --    Larw (s2t x) (let (y:_) = xs in s2t y)
 --s2t (Scons (Scons t1t2 (Ssym "->")) t3) = Larw (s2t t1t2) (s2t t3)
+
 
 s2t se = error ("Type Psil inconnu: " ++ (showSexp se))
 
@@ -257,7 +261,7 @@ s2l (Ssym s) = Lvar s
 -- ¡¡COMPLÉTER ICI!!
 s2l (Scons (Scons (Scons Snil e) (Ssym ":")) t) = Lhastype (s2l e) (s2t t)
 s2l (Scons (Scons (Scons (Scons Snil (Ssym "let")) (Ssym v)) e1) e2) = Llet v (s2l e1) (s2l e2)
-s2l (Scons (Scons (Scons Snil (Ssym "lambda")) (Ssym v)) e) = Lfun v (s2l e)
+s2l (Scons (Scons (Scons Snil (Ssym "fun")) (Ssym v)) e) = Lfun v (s2l e)
 
 -- malformed exp catch
 s2l (Scons (Scons Snil (Ssym "let")) _) = error "malformed let expression!"
@@ -309,7 +313,7 @@ tenv0 = [("+", Larw Lint (Larw Lint Lint)),
 -- `check Γ e τ` vérifie que `e` a type `τ` dans le contexte `Γ`.
 check :: TEnv -> Lexp -> Ltype -> Maybe TypeError
 -- ¡¡COMPLÉTER ICI!!
-
+-- !
 check tenv e t
   -- Essaie d'inférer le type et vérifie alors s'il correspond au
   -- type attendu.
@@ -387,6 +391,7 @@ eval :: VEnv -> Lexp -> Value
 eval _venv (Lnum n) = Vnum n
 eval venv (Lvar x) = mlookup venv x
 -- ¡¡COMPLÉTER ICI!!
+
 
 
 
