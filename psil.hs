@@ -226,13 +226,30 @@ data Ldec = Ldec Var Ltype      -- Déclaration globale.
 
 -- Conversion de Sexp à Lambda --------------------------------------------
 
+auxFunc :: Sexp -> [Sexp]
+auxFunc Snil = [] -- 
+auxFunc (Snum i) = [Snum i]
+auxFunc (Ssym v) = [Ssym v]
+auxFunc (Scons e1 e2) = auxFunc e1 ++ auxFunc e2
+
 s2t :: Sexp -> Ltype
 s2t (Ssym "Int") = Lint
 -- ¡¡COMPLÉTER ICI!!
 s2t (Scons Snil int) = s2t int
 s2t (Scons (Scons (Scons Snil t1) (Ssym "->")) t2) = Larw (s2t t1) (s2t t2)
-s2t (Scons (Scons t1t2 (Ssym "->")) t3) = Larw (s2t t1t2) (s2t t3)
+s2t se = aux2 (tail (auxFunc se))
+--    if x == (Ssym "->") then Larw (s2t x) 
+--    Larw (s2t x) (let (y:_) = xs in s2t y)
+--s2t (Scons (Scons t1t2 (Ssym "->")) t3) = Larw (s2t t1t2) (s2t t3)
+
 s2t se = error ("Type Psil inconnu: " ++ (showSexp se))
+
+aux2 :: [Sexp] -> Ltype
+{-aux2 (x:xs) =
+  if x == (Ssym "->") then Larw (s2t (Ssym ("Int"))) (s2t ((Ssym "Int")))
+  else Larw (s2t x) (aux2 xs)-}
+aux2 [Ssym "->",Ssym "Int"] = Larw (s2t (Ssym ("Int"))) (s2t ((Ssym "Int")))
+aux2 (x:xs) = Larw (s2t x) (aux2 xs)
 
 s2l :: Sexp -> Lexp
 s2l (Snum n) = Lnum n
