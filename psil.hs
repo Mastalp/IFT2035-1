@@ -234,16 +234,36 @@ s2slist (Ssym v) = [Ssym v]
 s2slist (Scons e1 e2) = s2slist e1 ++ s2slist e2
 
 sList2Ltype :: [Sexp] -> Ltype
-sList2Ltype [Ssym "->", _ ] = Larw Lint Lint
+sList2Ltype [Ssym "->", Ssym "Int"] = Larw Lint Lint
 sList2Ltype (x:xs) = Larw (s2t x) (sList2Ltype xs)
+--sList2Ltype _ = s2t (Ssym "error")
+
+{-aux2 :: [Sexp] -> Sexp
+aux2 (x:xs)
+  | l <= 2 = Scons Snil x
+  | otherwise = Scons Snil (aux2 xs)
+  where l = length (x:xs)-}
 
 -- s2t -- DONE -- 
 s2t :: Sexp -> Ltype
 s2t (Ssym "Int") = Lint
 -- ¡¡COMPLÉTER ICI!! 
 s2t (Scons Snil int) = s2t int
-s2t se = sList2Ltype (tail (s2slist se))
+--s2t se = sList2Ltype (tail (s2slist se))
+s2t se
+  | not (null t) && aux3 t 0 = sList2Ltype (tail t)
+  where t = s2slist se
 s2t se = error ("Type Psil inconnu: " ++ (showSexp se))
+
+aux3 :: [Sexp] -> Int -> Bool
+aux3 [] 0 = True
+aux3 [] 1 = True
+aux3 (x:xs) i
+  | x == Ssym "->" = let j = i + 1 in aux3 xs j
+  | x == Ssym "Int" = aux3 xs i
+  | otherwise = False
+aux3 _ _ = False
+
 
 -- s2l -- ! wip ! -- 
 s2l :: Sexp -> Lexp
@@ -256,6 +276,8 @@ s2l (Scons (Scons (Scons Snil e) (Ssym ":")) t) = Lhastype (s2l e) (s2t t)
 s2l (Scons (Scons (Scons (Scons Snil (Ssym "let")) (Ssym v)) e1) e2) = Llet v (s2l e1) (s2l e2)
 s2l (Scons (Scons (Scons Snil (Ssym "fun")) (Ssym v)) e) = Lfun v (s2l e)
 
+s2l se = aux (s2slist se)
+
 -- pairs of exp -- ! TO DO ! --
 {-
 s2l (Scons Snil e1) = s2l e1 -- base case
@@ -266,6 +288,16 @@ s2l (Scons e1 e2) = s2l' (s2l e1) e2
 -}
 -- IMPOSSIBLE TO REACH 
 s2l se = error ("Expression Psil inconnue: " ++ (showSexp se))
+
+{-aux :: [Sexp] -> Lexp
+aux (Ssym "->":xs) = Lapp (s2l (head xs)) (s2l (last xs))
+aux (x:xs) = Lapp (s2l x) (aux xs)-}
+
+aux :: [Sexp] -> Lexp
+aux (x:xs)
+  | l == 2 = Lapp (s2l x) (s2l (head xs))
+  | otherwise = Lapp (s2l x) (aux xs)
+  where l = length (x:xs)
 
 -- s2d -- DONE -- 
 s2d :: Sexp -> Ldec
