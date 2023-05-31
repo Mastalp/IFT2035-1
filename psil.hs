@@ -282,7 +282,7 @@ s2l (Scons (Scons (Scons Snil e) (Ssym ":")) t) = Lhastype (s2l e) (s2t t)
 s2l (Scons (Scons (Scons (Scons Snil (Ssym "let")) (Ssym v)) e1) e2) = Llet v (s2l e1) (s2l e2)
 s2l (Scons (Scons (Scons Snil (Ssym "fun")) (Ssym v)) e) = Lfun v (s2l e)
 
-s2l se = aux (s2slist se)
+--s2l se = aux (s2slist se)
 
 -- pairs of exp -- ! TO DO ! --
 -- FUNCTION CALLS (LAPP) -- (f a b c) et va retourner : 
@@ -298,6 +298,9 @@ s2l (Scons e1 e2) = s2l' (s2l e1) e2
 
 
 -- IMPOSSIBLE TO REACH 
+s2l se
+  | not (null t) && aux4 t = aux t
+  where t = s2slist se
 s2l se = error ("Expression Psil inconnue: " ++ (showSexp se))
 
 {-aux :: [Sexp] -> Lexp
@@ -305,10 +308,15 @@ aux (Ssym "->":xs) = Lapp (s2l (head xs)) (s2l (last xs))
 aux (x:xs) = Lapp (s2l x) (aux xs)-}
 
 aux :: [Sexp] -> Lexp
-aux (x:xs)
-  | l == 2 = Lapp (s2l x) (s2l (head xs))
-  | otherwise = Lapp (s2l x) (aux xs)
-  where l = length (x:xs)
+aux = aux' . reverse
+  where
+    aux' [x] = s2l x
+    aux' (x:y:ys) = Lapp (aux' (y:ys)) (s2l x)
+
+aux4 :: [Sexp] -> Bool
+aux4 [_] = True
+aux4 ((Ssym _):xs) = aux4 xs
+aux4 _ = False
 
 -- s2d -- DONE -- 
 s2d :: Sexp -> Ldec
@@ -343,7 +351,9 @@ tenv0 = [("+", Larw Lint (Larw Lint Lint)),
          ("-", Larw Lint (Larw Lint Lint)),
          ("*", Larw Lint (Larw Lint Lint)),
          ("/", Larw Lint (Larw Lint Lint)),
-         ("if0", Larw Lint (Larw Lint (Larw Lint Lint)))]
+         ("if0", Larw Lint (Larw Lint (Larw Lint Lint))),
+         ("a", Larw Lint Lint)
+         ]
 
 -- `check Γ e τ` vérifie que `e` a type `τ` dans le contexte `Γ`.
 check :: TEnv -> Lexp -> Ltype -> Maybe TypeError
@@ -474,9 +484,9 @@ process_decl ((tenv, venv), Nothing, res) (Ldef x e) =
         venv' = minsert venv x val
     in ((tenv', venv'), Nothing, (val, ltype) : res)
 -- ¡¡COMPLÉTER ICI!! 
-process_decl ((tenv, venv), Nothing, res) (Ldec x t) = 
+{-process_decl ((tenv, venv), Nothing, res) (Ldec x t) = 
   let 
-    tenv' = minsert tenv x t 
+    tenv' = minsert tenv x t -}
 
 ---------------------------------------------------------------------------
 -- Toplevel                                                              --
