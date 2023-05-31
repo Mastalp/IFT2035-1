@@ -226,47 +226,36 @@ data Ldec = Ldec Var Ltype      -- Déclaration globale.
 
 -- Conversion de Sexp à Lambda --------------------------------------------
 
+-- aux functions
+s2slist :: Sexp -> [Sexp]
+s2slist Snil = [] -- base case
+s2slist (Snum i) = [Snum i]
+s2slist (Ssym v) = [Ssym v]
+s2slist (Scons e1 e2) = s2slist e1 ++ s2slist e2
 
-auxFunc :: Sexp -> [Sexp]
-auxFunc Snil = [] -- 
-auxFunc (Snum i) = [Snum i]
-auxFunc (Ssym v) = [Ssym v]
-auxFunc (Scons e1 e2) = auxFunc e1 ++ auxFunc e2
+sArray2Ltype :: [Sexp] -> Ltype
+sArray2Ltype [Ssym "->", _ ] = Larw Lint Lint
+sArray2Ltype (x:xs) = Larw (s2t x) (sArray2Ltype xs)
 
-
+-- s2t -- DONE -- 
 s2t :: Sexp -> Ltype
 s2t (Ssym "Int") = Lint
--- ¡¡COMPLÉTER ICI!!
+-- ¡¡COMPLÉTER ICI!! 
 s2t (Scons Snil int) = s2t int
-s2t (Scons (Scons (Scons Snil t1) (Ssym "->")) t2) = Larw (s2t t1) (s2t t2)
-
-s2t se = aux2 (tail (auxFunc se))
---    if x == (Ssym "->") then Larw (s2t x) 
---    Larw (s2t x) (let (y:_) = xs in s2t y)
---s2t (Scons (Scons t1t2 (Ssym "->")) t3) = Larw (s2t t1t2) (s2t t3)
-
-
+s2t se = sArray2Ltype (tail (s2slist se))
 s2t se = error ("Type Psil inconnu: " ++ (showSexp se))
 
-aux2 :: [Sexp] -> Ltype
-{-aux2 (x:xs) =
-  if x == (Ssym "->") then Larw (s2t (Ssym ("Int"))) (s2t ((Ssym "Int")))
-  else Larw (s2t x) (aux2 xs)-}
-aux2 [Ssym "->",Ssym "Int"] = Larw (s2t (Ssym ("Int"))) (s2t ((Ssym "Int")))
-aux2 (x:xs) = Larw (s2t x) (aux2 xs)
-
+-- s2l -- ! wip ! -- 
 s2l :: Sexp -> Lexp
 s2l (Snum n) = Lnum n
 s2l (Ssym s) = Lvar s
--- ¡¡COMPLÉTER ICI!!
+-- ¡¡COMPLÉTER ICI!! 
 s2l (Scons (Scons (Scons Snil e) (Ssym ":")) t) = Lhastype (s2l e) (s2t t)
 s2l (Scons (Scons (Scons (Scons Snil (Ssym "let")) (Ssym v)) e1) e2) = Llet v (s2l e1) (s2l e2)
 s2l (Scons (Scons (Scons Snil (Ssym "fun")) (Ssym v)) e) = Lfun v (s2l e)
 
--- malformed exp catch
-s2l (Scons (Scons Snil (Ssym "let")) _) = error "malformed let expression!"
 
--- pairs of exp
+-- pairs of exp -- ! TO DO ! --
 s2l (Scons Snil e1) = s2l e1 -- base case
 s2l (Scons e1 e2) = s2l' (s2l e1) e2
   where 
@@ -276,6 +265,7 @@ s2l (Scons e1 e2) = s2l' (s2l e1) e2
 -- IMPOSSIBLE TO REACH 
 s2l se = error ("Expression Psil inconnue: " ++ (showSexp se))
 
+-- s2d -- DONE -- 
 s2d :: Sexp -> Ldec
 s2d (Scons (Scons (Scons Snil (Ssym "def")) (Ssym v)) e) = Ldef v (s2l e)
 -- ¡¡COMPLÉTER ICI!!
