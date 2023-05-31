@@ -233,16 +233,16 @@ s2slist (Snum i) = [Snum i]
 s2slist (Ssym v) = [Ssym v]
 s2slist (Scons e1 e2) = s2slist e1 ++ s2slist e2
 
-sArray2Ltype :: [Sexp] -> Ltype
-sArray2Ltype [Ssym "->", _ ] = Larw Lint Lint
-sArray2Ltype (x:xs) = Larw (s2t x) (sArray2Ltype xs)
+sList2Ltype :: [Sexp] -> Ltype
+sList2Ltype [Ssym "->", _ ] = Larw Lint Lint
+sList2Ltype (x:xs) = Larw (s2t x) (sList2Ltype xs)
 
 -- s2t -- DONE -- 
 s2t :: Sexp -> Ltype
 s2t (Ssym "Int") = Lint
 -- ¡¡COMPLÉTER ICI!! 
 s2t (Scons Snil int) = s2t int
-s2t se = sArray2Ltype (tail (s2slist se))
+s2t se = sList2Ltype (tail (s2slist se))
 s2t se = error ("Type Psil inconnu: " ++ (showSexp se))
 
 -- s2l -- ! wip ! -- 
@@ -250,18 +250,20 @@ s2l :: Sexp -> Lexp
 s2l (Snum n) = Lnum n
 s2l (Ssym s) = Lvar s
 -- ¡¡COMPLÉTER ICI!! 
+--
+-- Pattern matching
 s2l (Scons (Scons (Scons Snil e) (Ssym ":")) t) = Lhastype (s2l e) (s2t t)
 s2l (Scons (Scons (Scons (Scons Snil (Ssym "let")) (Ssym v)) e1) e2) = Llet v (s2l e1) (s2l e2)
 s2l (Scons (Scons (Scons Snil (Ssym "fun")) (Ssym v)) e) = Lfun v (s2l e)
 
-
 -- pairs of exp -- ! TO DO ! --
+{-
 s2l (Scons Snil e1) = s2l e1 -- base case
 s2l (Scons e1 e2) = s2l' (s2l e1) e2
   where 
     s2l' exp1 (Scons exp2 exp3) = s2l' (Lapp exp1 (s2l exp2)) exp3
     s2l' exp1 exp2 = Lapp exp1 (s2l exp2)
-
+-}
 -- IMPOSSIBLE TO REACH 
 s2l se = error ("Expression Psil inconnue: " ++ (showSexp se))
 
