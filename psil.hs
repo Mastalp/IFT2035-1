@@ -227,15 +227,20 @@ data Ldec = Ldec Var Ltype      -- Déclaration globale.
 -- Conversion de Sexp à Lambda --------------------------------------------
 
 -- aux functions
+
 s2slist :: Sexp -> [Sexp]
 s2slist Snil = [] -- base case
 s2slist (Snum i) = [Snum i]
 s2slist (Ssym v) = [Ssym v]
 s2slist (Scons e1 e2) = s2slist e1 ++ s2slist e2
 
+ 
+
 sList2Ltype :: [Sexp] -> Ltype
-sList2Ltype [Ssym "->", _ ] = Larw Lint Lint
+sList2Ltype [Ssym "->", Ssym "Int" ] = Larw Lint Lint -- base case
 sList2Ltype (x:xs) = Larw (s2t x) (sList2Ltype xs)
+sList2Ltype _ = error "ERREUR SPECIALE"
+
 
 -- s2t -- DONE -- 
 s2t :: Sexp -> Ltype
@@ -243,9 +248,13 @@ s2t (Ssym "Int") = Lint
 -- ¡¡COMPLÉTER ICI!! 
 s2t (Scons Snil int) = s2t int
 s2t se = sList2Ltype (tail (s2slist se))
+--
 s2t se = error ("Type Psil inconnu: " ++ (showSexp se))
 
--- s2l -- ! wip ! -- 
+sList2Lexp :: [Sexp] -> Lexp
+sList2Lexp [] = Lnum 1
+
+-- s2l -- ! wip ! --
 s2l :: Sexp -> Lexp
 s2l (Snum n) = Lnum n
 s2l (Ssym s) = Lvar s
@@ -257,6 +266,8 @@ s2l (Scons (Scons (Scons (Scons Snil (Ssym "let")) (Ssym v)) e1) e2) = Llet v (s
 s2l (Scons (Scons (Scons Snil (Ssym "fun")) (Ssym v)) e) = Lfun v (s2l e)
 
 -- pairs of exp -- ! TO DO ! --
+-- FUNCTION CALLS (LAPP) -- (f a b c) et va retourner : 
+-- Lapp (Lapp (Lapp (Lvar "f") (Lvar "a")) (Lvar "b")) (Lvar "c")
 {-
 s2l (Scons Snil e1) = s2l e1 -- base case
 s2l (Scons e1 e2) = s2l' (s2l e1) e2
@@ -264,6 +275,9 @@ s2l (Scons e1 e2) = s2l' (s2l e1) e2
     s2l' exp1 (Scons exp2 exp3) = s2l' (Lapp exp1 (s2l exp2)) exp3
     s2l' exp1 exp2 = Lapp exp1 (s2l exp2)
 -}
+
+
+
 -- IMPOSSIBLE TO REACH 
 s2l se = error ("Expression Psil inconnue: " ++ (showSexp se))
 
@@ -324,6 +338,10 @@ synth tenv (Lhastype e t) =
       Just err -> error err
 -- ¡¡COMPLÉTER ICI!!
 -- Lapp, Llet et Lfun
+synth tenv (Llet v e1 e2) =
+  let t1 = synth tenv e1
+  in synth (minsert tenv v t1) e2
+
 synth tenv (Lfun v e) =
   let
     t1 = Lint -- Assume a type
@@ -341,11 +359,6 @@ synth tenv (Lapp e1 e2) =
         Nothing -> t12
         Just err -> error err
     _ -> error "not a function!"
-
-synth tenv (Llet v e1 e2) =
-  let t1 = synth tenv e1
-  in synth (minsert tenv v t1) e2
-
 
 
 synth _tenv e = error ("Incapable de trouver le type de: " ++ (show e))
@@ -376,13 +389,38 @@ venv0 = [("+", Vop (\ (Vnum x) -> Vop (\ (Vnum y) -> Vnum (x + y)))),
          ("if0", Vop (\ (Vnum x) ->
                        case x of
                          0 -> Vop (\ v1 -> Vop (\ _ -> v1))
-                         _ -> Vop (\ _ -> Vop (\ v2 -> v2))))]
+                         _ -> Vop (\ _ -> Vop (\ v2 -> v2)))),
+          ("x", Vnum 12)               
+                         ]
 
 -- La fonction d'évaluation principale.
 eval :: VEnv -> Lexp -> Value
 eval _venv (Lnum n) = Vnum n
 eval venv (Lvar x) = mlookup venv x
 -- ¡¡COMPLÉTER ICI!!
+-- Lhastype , Lfun, Lapp, Llet
+-- let v = x in f 
+eval venv (Llet v x f) = 
+  let 
+    closureEnv = minsert venv v (eval venv x) 
+  in 
+    -- evaluer f avec closureEnv
+    eval closureEnv (Lfun v f)
+
+eval venv (Lfun _ body) = eval venv body
+
+{-
+eval venv (Lapp e1 e2) = 
+  let 
+    function = eval venv e1 
+    args = eval venv e2
+  in
+    Nothing
+
+-}
+  
+
+eval _ _ = error "NOTTTTT"
 
 
 
@@ -407,7 +445,9 @@ process_decl ((tenv, venv), Nothing, res) (Ldef x e) =
         venv' = minsert venv x val
     in ((tenv', venv'), Nothing, (val, ltype) : res)
 -- ¡¡COMPLÉTER ICI!! 
-
+process_decl ((tenv, venv), Nothing, res) (Ldec x t) = 
+  let 
+    tenv' = minsert tenv x t 
 
 ---------------------------------------------------------------------------
 -- Toplevel                                                              --
