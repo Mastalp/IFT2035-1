@@ -15,6 +15,8 @@
 {-# HLINT ignore "Use putStr" #-}
 {-# HLINT ignore "Use shows" #-}
 {-# OPTIONS_GHC -Wno-overlapping-patterns #-}
+{-# OPTIONS_GHC -Wno-unused-matches #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 --
 -- Ce fichier défini les fonctionalités suivantes:
 -- - Analyseur lexical
@@ -228,13 +230,20 @@ data Ldec = Ldec Var Ltype      -- Déclaration globale.
 
 -- aux functions
 
+{-
+s2slist :: Sexp -> [Sexp]
+s2slist Snil = []
+s2slist (Snum i) = [Snum i]
+s2slist (Ssym v) = [Ssym v]
+s2slist (Scons e1 e2) = s2slist e1 ++ [e2] -- ! changed
+-}
+-- ! OG METHOD
 s2slist :: Sexp -> [Sexp]
 s2slist Snil = [] -- base case
 s2slist (Snum i) = [Snum i]
 s2slist (Ssym v) = [Ssym v]
 s2slist (Scons e1 e2) = s2slist e1 ++ s2slist e2
 
- 
 
 sList2Ltype :: [Sexp] -> Ltype
 
@@ -278,10 +287,16 @@ s2l (Ssym s) = Lvar s
 -- ¡¡COMPLÉTER ICI!! 
 --
 -- Pattern matching
-s2l (Scons (Scons (Scons Snil e) (Ssym ":")) t) = Lhastype (s2l e) (s2t t)
-s2l (Scons (Scons (Scons (Scons Snil (Ssym "let")) (Ssym v)) e1) e2) = Llet v (s2l e1) (s2l e2)
-s2l (Scons (Scons (Scons Snil (Ssym "fun")) (Ssym v)) e) = Lfun v (s2l e)
 
+--s2l (Scons (Scons (Scons Snil e) (Ssym ":")) t) = Lhastype (s2l e) (s2t t)
+
+-- LET x = y in f 
+--s2l (Scons (Scons (Scons (Scons Snil (Ssym "let")) (Ssym v)) e1) e2) = Llet v (s2l e1) (s2l e2)
+--s2l (Scons (Scons (Scons Snil (Ssym "let")) )
+-- (Scons Snil (Ssym "let")) (Scons Snil (Scons (Scons Snil (Ssym "x")) (Snum 5)))) (Scons (Scons (Scons Snil (Ssym "*")) (Ssym "x")) (Snum 4)))
+{-
+s2l (Scons (Scons (Scons Snil (Ssym "fun")) (Ssym v)) e) = Lfun v (s2l e)
+-}
 --s2l se = aux (s2slist se)
 
 -- pairs of exp -- ! TO DO ! --
@@ -295,17 +310,30 @@ s2l (Scons e1 e2) = s2l' (s2l e1) e2
     s2l' exp1 exp2 = Lapp exp1 (s2l exp2)
 -}
 
-
-
--- IMPOSSIBLE TO REACH 
+{-
 s2l se
   | not (null t) && aux4 t = aux t
   where t = s2slist se
 s2l se = error ("Expression Psil inconnue: " ++ (showSexp se))
+-}
+s2l (Scons (Scons (Scons Snil (Ssym ":")) e) t) = Lhastype (s2l e) (s2t t)
 
-{-aux :: [Sexp] -> Lexp
+s2l (Scons (Scons (Scons Snil (Ssym "+")) e1) e2) = Lapp (Lapp (Lvar "+") (s2l e1)) (s2l e2)
+s2l (Scons (Scons (Scons Snil (Ssym "*")) (Snum x)) (Snum y)) = Lapp (Lapp (Lvar "*") (Lnum x)) (Lnum y)
+
+s2l (Scons e1 e2) = case s2slist (Scons e1 e2) of
+    [Snum i, Ssym ":", _] -> Lhastype (Lnum i) Lint
+    [Ssym v, Ssym ":", t] -> Lhastype (Lvar v) (s2t t)
+
+    [Ssym "let", Ssym v, e1', e2'] -> Llet v (s2l e1') (s2l e2')
+    [Ssym "fun", Ssym v, e] -> Lfun v (s2l e)
+    [e1', e2'] -> Lapp (s2l e1') (s2l e2')
+    _ -> error ("Expression Psil inconnue: " ++ showSexp (Scons e1 e2))
+{-
+aux :: [Sexp] -> Lexp
 aux (Ssym "->":xs) = Lapp (s2l (head xs)) (s2l (last xs))
-aux (x:xs) = Lapp (s2l x) (aux xs)-}
+aux (x:xs) = Lapp (s2l x) (aux xs)
+-}
 
 aux :: [Sexp] -> Lexp
 aux = aux' . reverse
@@ -322,6 +350,7 @@ aux4 _ = False
 s2d :: Sexp -> Ldec
 s2d (Scons (Scons (Scons Snil (Ssym "def")) (Ssym v)) e) = Ldef v (s2l e)
 -- ¡¡COMPLÉTER ICI!!
+
 s2d (Scons (Scons (Scons Snil (Ssym "dec")) (Ssym v)) t) = Ldec v (s2t t)
 s2d se = error ("Déclaration Psil inconnue: " ++ showSexp se)
 
@@ -348,10 +377,10 @@ type TypeError = String
 -- L'environment de typage initial.
 tenv0 :: TEnv
 tenv0 = [("+", Larw Lint (Larw Lint Lint)),
-         ("-", Larw Lint (Larw Lint Lint)),
+         --("-", Larw Lint (Larw Lint Lint)),
          ("*", Larw Lint (Larw Lint Lint)),
-         ("/", Larw Lint (Larw Lint Lint)),
-         ("if0", Larw Lint (Larw Lint (Larw Lint Lint))),
+         --("/", Larw Lint (Larw Lint Lint)),
+         --("if0", Larw Lint (Larw Lint (Larw Lint Lint))),
          ("a", Larw Lint Lint)
          ]
 
@@ -385,8 +414,8 @@ synth tenv (Lfun v e) =
   let
     t1 = Lint -- Assume a type
     extEnv = minsert tenv v t1
-    t2 = synth extEnv e 
-  in 
+    t2 = synth extEnv e
+  in
     Larw t1 t2 -- la fonction a le bon type
 
 synth tenv (Lapp e1 e2) =
@@ -422,14 +451,14 @@ instance Show Value where
 -- L'environnement initial qui contient les fonctions prédéfinies.
 venv0 :: VEnv
 venv0 = [("+", Vop (\ (Vnum x) -> Vop (\ (Vnum y) -> Vnum (x + y)))),
-         ("-", Vop (\ (Vnum x) -> Vop (\ (Vnum y) -> Vnum (x - y)))),
+         --("-", Vop (\ (Vnum x) -> Vop (\ (Vnum y) -> Vnum (x - y)))),
          ("*", Vop (\ (Vnum x) -> Vop (\ (Vnum y) -> Vnum (x * y)))),
-         ("/", Vop (\ (Vnum x) -> Vop (\ (Vnum y) -> Vnum (x `div` y)))),
-         ("if0", Vop (\ (Vnum x) ->
-                       case x of
-                         0 -> Vop (\ v1 -> Vop (\ _ -> v1))
-                         _ -> Vop (\ _ -> Vop (\ v2 -> v2)))),
-          ("x", Vnum 12)               
+         --("/", Vop (\ (Vnum x) -> Vop (\ (Vnum y) -> Vnum (x `div` y)))),
+         --("if0", Vop (\ (Vnum x) ->
+         --              case x of
+         --                0 -> Vop (\ v1 -> Vop (\ _ -> v1))
+         --                _ -> Vop (\ _ -> Vop (\ v2 -> v2)))),
+          ("x", Vnum 12)
                          ]
 
 -- La fonction d'évaluation principale.
@@ -437,29 +466,26 @@ eval :: VEnv -> Lexp -> Value
 eval _venv (Lnum n) = Vnum n
 eval venv (Lvar x) = mlookup venv x
 -- ¡¡COMPLÉTER ICI!!
--- Lhastype , Lfun, Lapp, Llet
--- let v = x in f 
-eval venv (Llet v x f) = 
-  let 
-    closureEnv = minsert venv v (eval venv x) 
-  in 
-    -- evaluer f avec closureEnv
-    eval closureEnv (Lfun v f)
-
-eval venv (Lfun _ body) = eval venv body
-
-{-
-eval venv (Lapp e1 e2) = 
-  let 
-    function = eval venv e1 
-    args = eval venv e2
+eval venv (Llet v x f) =
+  let
+    closureEnv = minsert venv v (eval venv x)
   in
-    Nothing
+    eval closureEnv f
+eval venv (Lfun v body) = Vfun venv v body
 
--}
-  
+eval venv (Lapp e1 e2) =
+  case eval venv e1 of
+    Vfun env x body -> eval (minsert env x (eval venv e2)) body
+    Vop o ->
+      case eval venv e2 of
+        Vnum n -> o (Vnum n)
+        _ -> error "Invalid argument for operator"
+    _ -> error "not a function!"
 
-eval _ _ = error "NOTTTTT"
+eval venv (Lhastype e _) = eval venv e
+
+eval _ _ = error "INVALID "
+
 
 
 
@@ -470,6 +496,7 @@ type EState = ((TEnv, VEnv),       -- Contextes de typage et d'évaluation.
                [(Value, Ltype)])   -- Résultats passés (en ordre inverse).
 
 -- Évalue une déclaration, y compris vérification des types.
+{-
 process_decl :: EState -> Ldec -> EState
 process_decl (env, Nothing, res) (Ldec x t) = (env, Just (x,t), res)
 process_decl (env, Just (x', _), res) decl@(Ldec _ _) =
@@ -483,10 +510,34 @@ process_decl ((tenv, venv), Nothing, res) (Ldef x e) =
         val = eval venv e
         venv' = minsert venv x val
     in ((tenv', venv'), Nothing, (val, ltype) : res)
+
 -- ¡¡COMPLÉTER ICI!! 
-{-process_decl ((tenv, venv), Nothing, res) (Ldec x t) = 
+
+process_decl ((tenv, venv), att, res) (Ldec x t) = 
   let 
-    tenv' = minsert tenv x t -}
+    tenv' = minsert tenv x t 
+  in 
+    ((tenv', venv), Nothing, res)
+-}
+process_decl :: EState -> Ldec -> EState
+process_decl (env, Nothing, res) (Ldec x t) = (env, Just (x,t), res)
+process_decl (env, Just (x', _), res) decl@(Ldec _ _ ) =
+    process_decl (env, Nothing,
+                  error ("Manque une définition pour: " ++ x') : res)
+                 decl
+process_decl ((tenv, venv), Nothing, res) (Ldef x e) =
+    -- Le programmeur n'a pas fourni d'annotation de type pour x.
+    let ltype = synth tenv e
+        tenv' = minsert tenv x ltype
+        val = eval venv e
+        venv' = minsert venv x val
+    in ((tenv', venv'), Nothing, (val, ltype) : res)
+process_decl ((tenv, venv), Just (x, _ ), res) (Ldef y e) =
+    let ltype = synth tenv e
+        val = eval venv e
+        venv' = minsert venv y val
+    in ((tenv, venv'), Nothing, (val, ltype) : res)
+
 
 ---------------------------------------------------------------------------
 -- Toplevel                                                              --
@@ -525,3 +576,12 @@ typeOf = synth tenv0 . lexpOf
 
 valOf :: String -> Value
 valOf = eval venv0 . lexpOf
+
+
+-- ------------------------ my vars -----------------------------
+state :: EState
+state = ((tenv0, venv0), Nothing, [(Vnum 1, Lint)])
+
+--state2 :: EState
+--state2 = process_decl state (Ldef "y" (Lnum 34))
+
