@@ -42,15 +42,53 @@
 
 (def m6 (f3 4))                                 ; ↝ 15 : Int ; notre x est caché
 
+(dec imc (Int Int -> Int))
 (def imc (fun height (                          ; ↝ <fermeture> : Larw Lint (Larw Lint Lint)
-    fun weight (
+    fun weight (                                
         let h2 (* height height) (
             / (weight) (h2)
         )
     )
 )))
 
-(dec indice_masse_corporelle Int)
-(def indice_masse_corporelle (imc 2 80))        ; 
+(def indice_masse_corporelle (imc 2 75))        ; ↝ 18 : Lint ; your bmi is a bit low  
 
 
+(def nestedlet (let x 5 (
+    let y 6 (
+        - y x 
+    )
+)))
+
+
+(def ex1 (/ (* (- 68 32) 5) 9))                 ; ↝ 20 : Lint ;
+
+
+(def f12 (fun x (
+    let y 123 (
+        (+ (let z 1000 (
+            + x z
+        ))(+ x y))
+    )
+)))
+
+(def m7 (f12 127))
+
+
+(dec r10 Int)
+(def r10 +)
+
+; RECURSION 
+
+(dec recursive Int)
+(def recursive (f1 recursive 37))                ; ↝ 42 : Int
+
+; NOT WORKING 
+
+; Exemples de Zi 
+;(dec ^ (Int Int -> Int))
+;(def ^ (fun x (fun y (if0 y 1 (if0 (- y 1) x (* x (^ x (- y 1))))))))   ; (a, b) -> a ^ b
+
+;(def y (^ 2 3))                                                         ; 2 ^ 3 = 8
+;(def x (^ 5 (^ 7 0)))                                                   ; 5 ^ (7 ^ 0) = 5 ^ 1 = 5
+;(def z (^ y x)) 

@@ -477,9 +477,9 @@ eval venv (Llet v x f) =
   in
     eval closureEnv f
 
-eval venv (Lfun v body) = Vfun venv v body
-
 eval venv (Lhastype e _) = eval venv e
+
+eval venv (Lfun v body) = Vfun venv v body
 
 -- ce cas a ete cree par ChatGPT
 eval venv (Lapp e1 e2) =
@@ -490,8 +490,6 @@ eval venv (Lapp e1 e2) =
         Vnum n -> o (Vnum n)
         _ -> error "Invalid argument for operator"
     _ -> error "not a function!"
-
-
 
 eval _ _ = error "INVALID "
 
@@ -518,8 +516,11 @@ process_decl ((tenv, venv), Nothing, res) (Ldef x e) =
         val = eval venv e
         venv' = minsert venv x val
     in ((tenv', venv'), Nothing, (val, ltype) : res)
--- ¡¡COMPLÉTER ICI!! -- ! DONE     
--- 
+-- ¡¡COMPLÉTER ICI!!  
+
+-- Voici notre process_decl, mais elle echoue dans les cas de recursion.
+-- Nous avons donc pris la version de Zi Kai Qin sur Studium 
+{-
 process_decl ((tenv, venv), Just (y, t ), res) (Ldef y' e) =
     let
       realtype = synth tenv e
@@ -527,10 +528,20 @@ process_decl ((tenv, venv), Just (y, t ), res) (Ldef y' e) =
       if realtype /= t then error "Definition ne respecte pas la declaration!" else
         let
           tenv' = minsert tenv y t
-          venv' = minsert venv y (eval venv e)
+          venv' = minsert venv y (eval venv' e)
         in
           ((tenv', venv'), Nothing, ((mlookup venv' y), t) : res)
-
+-}
+{--}
+-- Prit du post " Fonctions anonymes récursives par Zi Kai Qin, samedi 3 juin 2023, 02:21 "
+-- sur studium
+process_decl (env@(tenv, venv), dec@(Just (x, t)), res) (def@(Ldef y e)) =
+-- type check ...
+  let 
+    tenv' = minsert tenv y t
+    venv' = minsert venv x (eval venv' e)
+  in 
+    ((tenv', venv'), Nothing, (eval venv' e, t) : res)
 
 
 ---------------------------------------------------------------------------

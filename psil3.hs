@@ -236,9 +236,9 @@ s2t (se@(Scons _ _)) =
     in
         case selist of
             (Ssym "Tuple" : ts) -> Ltup (map s2t ts)
-            _ | length selist < 2 -> error (unrecType se)
+            _ | length selist < 2 -> error "(unrecType se)"
               | (last (init selist)) == Ssym "->" -> s2t' se selist
-              | otherwise -> error (unrecType se)
+              | otherwise -> error "(unrecType se)"
 s2t _ = error "(type Psil inconny )"
 
 -- Fonction auxiliaire de s2t traitant les cas avec récursion (currying)
