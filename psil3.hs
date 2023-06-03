@@ -1,25 +1,10 @@
 -- TP-1  --- Implantation d'une sorte de Lisp          -*- coding: utf-8 -*-
 {-# OPTIONS_GHC -Wall #-}
-{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Use camelCase" #-}
-{-# HLINT ignore "Avoid lambda using `infix`" #-}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 {-# HLINT ignore "Redundant bracket" #-}
-{-# HLINT ignore "Use <$>" #-}
-{-# HLINT ignore "Replace case with maybe" #-}
-{-# HLINT ignore "Use record patterns" #-}
-{-# HLINT ignore "Use const" #-}
-{-# HLINT ignore "Use id" #-}
-{-# HLINT ignore "Use concatMap" #-}
-{-# HLINT ignore "Use putStr" #-}
-{-# HLINT ignore "Use shows" #-}
-{-# OPTIONS_GHC -Wno-overlapping-patterns #-}
-{-# OPTIONS_GHC -Wno-unused-matches #-}
-{-# OPTIONS_GHC -Wno-name-shadowing #-}
-{-# HLINT ignore "Use list literal pattern" #-}
-{-# HLINT ignore "Use head" #-}
-{-# HLINT ignore "Use foldr" #-}
 --
 -- Ce fichier défini les fonctionalités suivantes:
 -- - Analyseur lexical
@@ -227,76 +212,9 @@ data Lexp = Lnum Int            -- Constante entière.
 data Ldec = Ldec Var Ltype      -- Déclaration globale.
           | Ldef Var Lexp       -- Définition globale.
           deriving (Show, Eq)
-
+          
 
 -- Conversion de Sexp à Lambda --------------------------------------------
-
-
-
-
-
--- Version de s2t implementee a partir de 
--- https://github.com/phil-gab99/IFT2035-TP1/blob/main/psil.hs  line 289 - 312
-{-
-s2t :: Sexp -> Ltype
-s2t (Ssym "Int") = Lint
--- ¡¡COMPLÉTER ICI!!
-s2t (se@(Scons _ _)) =
-    let
-        selist = sexp2list se
-    in
-        case selist of
-            _ | (last (init selist)) == Ssym "->" -> s2t' se selist
-              | otherwise -> error "bitch2"
-
-s2t se = error ("Type Psil inconnu: " ++ (showSexp se))
-
--- Fonction auxiliaire de s2t traitant les cas avec récursion (currying)
--- Fonction accomodant au sucre syntaxique de types de fonctions
-s2t' :: Sexp -> [Sexp] -> Ltype
-s2t' se selist =
-    case selist of
-        (ta : Ssym "->" : tr : []) -> Larw (s2t ta) (s2t tr)
-        _ | (last (init selist)) == Ssym "->" ->
-            Larw (s2t (head selist)) (s2t' se (tail selist))
-          | otherwise -> error "Type Psil inconnu!"
--}
-
--- Notre version s2t 
-
-s2slist :: Sexp -> [Sexp]
-s2slist Snil = [] -- base case
-s2slist (Snum i) = [Snum i]
-s2slist (Ssym v) = [Ssym v]
-s2slist (Scons e1 e2) = s2slist e1 ++ s2slist e2
-
-sList2Ltype :: [Sexp] -> Ltype
-sList2Ltype [Ssym "Int"] = Lint
-sList2Ltype [Ssym "->", Ssym "Int"] = Larw Lint Lint
-sList2Ltype (x:xs) = Larw (s2t x) (sList2Ltype xs)
-
-aux3 :: [Sexp] -> Int -> Bool
-aux3 [] 0 = True
-aux3 [] 1 = True
-aux3 (x:xs) i
-  | x == Ssym "->" = let j = i + 1 in aux3 xs j
-  | x == Ssym "Int" = aux3 xs i
-  | otherwise = False
-aux3 _ _ = False
-
--- s2t 
-s2t :: Sexp -> Ltype
-s2t (Ssym "Int") = Lint
--- ¡¡COMPLÉTER ICI!! 
-s2t (Scons Snil int) = s2t int
---s2t se = sList2Ltype (tail (s2slist se))
-s2t se
-  | not (null t) && aux3 t 0 = sList2Ltype (tail t)
-  where t = s2slist se
-s2t se = error ("Type Psil inconnu: " ++ (showSexp se))
-
-
-
 
 -- Convertit une liste Sexp en une liste Haskell avec les éléments d'intérêts
 sexp2list :: Sexp -> [Sexp]
@@ -306,57 +224,44 @@ sexp2list s = loop s []
         loop Snil acc = acc
         loop _ _ = error ("Improper list: " ++ show s)
 
--- fonction s2l copiee de phil-gab99/IFT2035-TP1/blob/main/psil.hs
--- modifiee pour la faire fonctionner avec nos Sexp
-s2l :: Sexp -> Lexp
-s2l (Snum n) = Lnum n
-s2l (Ssym s) = Lvar s
--- ¡¡COMPLÉTER ICI!!
-s2l (se@(Scons _ _)) =
+-- Analyse une Sexp et construit un Ltype équivalent
+-- Appelée lorsqu'une expression indique des types
+s2t :: Sexp -> Ltype
+s2t (Ssym "Int") = Lint
+s2t (Ssym "Bool") = Lboo
+s2t (Ssym "Unit") = Ltup []
+s2t (se@(Scons _ _)) =
     let
         selist = sexp2list se
     in
         case selist of
-            (Ssym ":" : e : t : []) -> Lhastype (s2l e) (s2t t)
+            (Ssym "Tuple" : ts) -> Ltup (map s2t ts)
+            _ | length selist < 2 -> error (unrecType se)
+              | (last (init selist)) == Ssym "->" -> s2t' se selist
+              | otherwise -> error (unrecType se)
+s2t _ = error "(type Psil inconny )"
 
-            [Ssym "fun", v, e] ->
-                case s2l v of
-                    Lvar x -> Lfun x (s2l e)
-                    _ -> error "pas une fonction!"
-
-            (Ssym "let" : Ssym var : e : exp : []) -> Llet var (s2l e) (s2l exp)
-            (Ssym "let" : Ssym var : e : rest) | not (null rest) -> Llet var (s2l e) (s2l (head rest))
-
-            (Ssym s : args) -> foldl1 Lapp (map s2l (Ssym s : args))
-            ((Scons _ _) : args) -> foldl1 Lapp (map s2l selist)
-            _ -> error "(Expression Psil Inconnue!)"
-
-s2l se = error ("Expression Psil inconnue: " ++ (showSexp se))
-
--- fonction auxiliaire pour la recursion des appels de fonctions lambda
-s2l' :: Sexp -> [Sexp] -> Lexp
-s2l' se selist =
+-- Fonction auxiliaire de s2t traitant les cas avec récursion (currying)
+-- Fonction accommodant au sucre syntaxique de types de fonctions
+s2t' :: Sexp -> [Sexp] -> Ltype
+s2t' se selist =
     case selist of
-
-        (Ssym "fun" : v : e : []) ->
-            case s2l v of
-                Lvar x -> Lfun x (s2l e)
-                _ -> error "pas une fonction!"
-        (Ssym "fun" : v : vs) ->
-            case s2l v of
-                Lvar x -> Lfun x (s2l' se (Ssym "fun" : vs))
-                _ -> error "(argsMatchError se)"
-        
-        _ -> error "(unrecognized)"
+        (ta : Ssym "->" : tr : []) -> Larw (s2t ta) (s2t tr)
+        _ | (last (init selist)) == Ssym "->" ->
+              Larw (s2t (head selist)) (s2t' se (tail selist))
+          | otherwise -> error (unrecType se)
 
 
+s2l :: Sexp -> Lexp
+s2l (Snum n) = Lnum n
+s2l (Ssym s) = Lvar s
+-- ¡¡COMPLÉTER ICI!!
+s2l se = error ("Expression Psil inconnue: " ++ (showSexp se))
 
 s2d :: Sexp -> Ldec
 s2d (Scons (Scons (Scons Snil (Ssym "def")) (Ssym v)) e) = Ldef v (s2l e)
 -- ¡¡COMPLÉTER ICI!!
-s2d (Scons (Scons (Scons Snil (Ssym "dec")) (Ssym v)) t) = Ldec v (s2t t)
 s2d se = error ("Déclaration Psil inconnue: " ++ showSexp se)
-
 
 ---------------------------------------------------------------------------
 -- Vérification des types                                                --
@@ -384,14 +289,11 @@ tenv0 = [("+", Larw Lint (Larw Lint Lint)),
          ("-", Larw Lint (Larw Lint Lint)),
          ("*", Larw Lint (Larw Lint Lint)),
          ("/", Larw Lint (Larw Lint Lint)),
-         ("if0", Larw Lint (Larw Lint (Larw Lint Lint)))
-         ]
+         ("if0", Larw Lint (Larw Lint (Larw Lint Lint)))]
 
 -- `check Γ e τ` vérifie que `e` a type `τ` dans le contexte `Γ`.
 check :: TEnv -> Lexp -> Ltype -> Maybe TypeError
 -- ¡¡COMPLÉTER ICI!!
--- !
-
 check tenv e t
   -- Essaie d'inférer le type et vérifie alors s'il correspond au
   -- type attendu.
@@ -409,35 +311,9 @@ synth tenv (Lhastype e t) =
       Nothing -> t
       Just err -> error err
 -- ¡¡COMPLÉTER ICI!!
--- Lapp, Llet et Lfun
-synth tenv (Llet v e1 e2) =
-  let t1 = synth tenv e1
-  in synth (minsert tenv v t1) e2
-
-synth tenv (Lfun v e) =
-  let
-    t1 = Lint -- Assume a type
-    extEnv = minsert tenv v t1
-    t2 = synth extEnv e
-  in
-    Larw t1 t2 -- la fonction a le bon type
-
--- aide de ChatGPT
-synth tenv (Lapp e1 e2) =
-  let
-    t1 = synth tenv e1
-  in case t1 of
-    Larw t11 t12 ->
-      case check tenv e2 t11 of
-        Nothing -> t12
-        Just err -> error err
-    Lint -> Lint
-    _ -> error "not a function!"
-
-
 synth _tenv e = error ("Incapable de trouver le type de: " ++ (show e))
 
-
+        
 ---------------------------------------------------------------------------
 -- Évaluateur                                                            --
 ---------------------------------------------------------------------------
@@ -463,40 +339,13 @@ venv0 = [("+", Vop (\ (Vnum x) -> Vop (\ (Vnum y) -> Vnum (x + y)))),
          ("if0", Vop (\ (Vnum x) ->
                        case x of
                          0 -> Vop (\ v1 -> Vop (\ _ -> v1))
-                         _ -> Vop (\ _ -> Vop (\ v2 -> v2))))
-                         ]
+                         _ -> Vop (\ _ -> Vop (\ v2 -> v2))))]
 
 -- La fonction d'évaluation principale.
 eval :: VEnv -> Lexp -> Value
 eval _venv (Lnum n) = Vnum n
 eval venv (Lvar x) = mlookup venv x
 -- ¡¡COMPLÉTER ICI!!
-eval venv (Llet v x f) =
-  let
-    closureEnv = minsert venv v (eval venv x)
-  in
-    eval closureEnv f
-
-eval venv (Lfun v body) = Vfun venv v body
-
-eval venv (Lhastype e _) = eval venv e
-
--- ce cas a ete cree par ChatGPT
-eval venv (Lapp e1 e2) =
-  case eval venv e1 of
-    Vfun env x body -> eval (minsert env x (eval venv e2)) body
-    Vop o ->
-      case eval venv e2 of
-        Vnum n -> o (Vnum n)
-        _ -> error "Invalid argument for operator"
-    _ -> error "not a function!"
-
-
-
-eval _ _ = error "INVALID "
-
-
-
 
 
 -- État de l'évaluateur.
@@ -507,31 +356,18 @@ type EState = ((TEnv, VEnv),       -- Contextes de typage et d'évaluation.
 -- Évalue une déclaration, y compris vérification des types.
 process_decl :: EState -> Ldec -> EState
 process_decl (env, Nothing, res) (Ldec x t) = (env, Just (x,t), res)
-process_decl (env, Just (x', _), res) decl@(Ldec _ _ ) =
+process_decl (env, Just (x', _), res) (decl@(Ldec _ _)) =
     process_decl (env, Nothing,
                   error ("Manque une définition pour: " ++ x') : res)
                  decl
 process_decl ((tenv, venv), Nothing, res) (Ldef x e) =
-    -- Le programmeur n'a pas fourni d'annotation de type pour x.
+    -- Le programmeur n'a *pas* fourni d'annotation de type pour `x`.
     let ltype = synth tenv e
         tenv' = minsert tenv x ltype
         val = eval venv e
         venv' = minsert venv x val
     in ((tenv', venv'), Nothing, (val, ltype) : res)
--- ¡¡COMPLÉTER ICI!! -- ! DONE     
--- 
-process_decl ((tenv, venv), Just (y, t ), res) (Ldef y' e) =
-    let
-      realtype = synth tenv e
-    in
-      if realtype /= t then error "Definition ne respecte pas la declaration!" else
-        let
-          tenv' = minsert tenv y t
-          venv' = minsert venv y (eval venv e)
-        in
-          ((tenv', venv'), Nothing, ((mlookup venv' y), t) : res)
-
-
+-- ¡¡COMPLÉTER ICI!!
 
 ---------------------------------------------------------------------------
 -- Toplevel                                                              --
@@ -570,9 +406,3 @@ typeOf = synth tenv0 . lexpOf
 
 valOf :: String -> Value
 valOf = eval venv0 . lexpOf
-
-
--- ------------------------ my vars -----------------------------
-state :: EState
-state = ((tenv0, venv0), Nothing, [(Vnum 1, Lint)])
-

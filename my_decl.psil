@@ -1,0 +1,56 @@
+; vraiment cool de coder dans un language qu'on vient de voir intimement
+
+(def r5 ((+ 2) 4))                               ; ↝ 6 : Int
+
+(dec r6 Int)
+(def r6 (+ 2 5))                                 ; ↝ 7 : Int
+
+(def r7 (let x 5 (* x 4)))                       ; ↝ 20 : Int
+
+(dec f1 (Int Int -> Int))
+(def f1 (fun x (fun y (+ y 5))))                 ; ↝ <fonction> : Int -> Int -> Int
+
+; NOS FONCTIONS 
+; test la possibilitée d'evaluer une annotation de type comme valeur
+(def m1 ( + (: 2 Int) (: 3 Int)    ))           ; ↝ 5 : Int
+
+; utilisation de variables
+(dec m2 (Int))
+(def m2 (+ r5 r6))                              ; ↝ 13 : Int
+
+; lambda functions
+(def m3 (fun x 5))                              ; ↝ <fermeture> : Larw Lint Lint
+
+(def m4 (f1 4 5))                               ; ↝ 10 : Int ; x=4 not used in f1
+
+(def f2 (fun x (                                ; ↝ <fermeture> : Larw Lint (Larw Lint (Larw Lint Lint))
+    fun y (
+        fun z (
+            + (+ x 10) (+ y z)
+        )
+    )
+)))
+
+(def m5 (f2 1 2 3))                             ; ↝ 16 : Int
+
+; test de portee 
+(def f3 (fun x (                                ; ↝ <fermeture> : Larw Lint Lint
+    let x 5 (
+        + x 10 
+    )
+)))
+
+(def m6 (f3 4))                                 ; ↝ 15 : Int ; notre x est caché
+
+(def imc (fun height (                          ; ↝ <fermeture> : Larw Lint (Larw Lint Lint)
+    fun weight (
+        let h2 (* height height) (
+            / (weight) (h2)
+        )
+    )
+)))
+
+(dec indice_masse_corporelle Int)
+(def indice_masse_corporelle (imc 2 80))        ; 
+
+
