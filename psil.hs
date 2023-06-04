@@ -520,6 +520,7 @@ process_decl ((tenv, venv), Nothing, res) (Ldef x e) =
 
 -- Voici notre process_decl, mais elle echoue dans les cas de recursion.
 -- Nous avons donc pris la version de Zi Kai Qin sur Studium 
+-- Cela dit, cela introduit un bug ou la def peut ne pas respecter la definition
 {-
 process_decl ((tenv, venv), Just (y, t ), res) (Ldef y' e) =
     let
@@ -536,7 +537,7 @@ process_decl ((tenv, venv), Just (y, t ), res) (Ldef y' e) =
 -- Prit du post " Fonctions anonymes récursives par Zi Kai Qin, samedi 3 juin 2023, 02:21 "
 -- sur studium
 process_decl (env@(tenv, venv), dec@(Just (x, t)), res) (def@(Ldef y e)) =
--- type check ...
+-- type check ... 
   let 
     tenv' = minsert tenv y t
     venv' = minsert venv x (eval venv' e)

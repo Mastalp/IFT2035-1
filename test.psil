@@ -75,8 +75,10 @@
 (def m7 (f12 127))
 
 
-(dec r10 Int)
+(dec r10 (Int Int -> Int))
 (def r10 +)
+
+
 
 ; RECURSION 
 

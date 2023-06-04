@@ -1,0 +1,172 @@
+\documentclass{article}
+
+
+\usepackage{graphicx} % Required for inserting images
+\usepackage[french]{babel}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+
+\title{Devoir 1 - IFT2035}
+\author{
+Félix Reutenauer 20215155
+\\
+Laurent-Philippe Roy-Lemaire 20074007}
+\date{3 juin 2023}
+
+\begin{document}
+
+\\ (COMPILE SUR OVERLEAF) 
+
+\maketitle
+
+\section{Haskell}
+
+Afin de posséder les connaissances en Haskell nécessaires à la réussite de ce premier devoir, nous avons entrepris la recherche de guides portant sur ce langage sur le web.
+Après plusieurs heures de lecture intensive, nous avons cherché des exercices interactifs dans l'objectif de mettre à l'épreuve notre savoir nouveau.
+Une liste complète de nos ressources est disponible à la section \hyperref[sec:biblio]{Bibliographie}.
+Grâce au succès de ces deux opérations, nous étions fin prêts à attaquer l'étape 2 de ce devoir, à savoir lire et comprendre l'énoncé.
+
+\section{L'énoncé}
+
+Comme prévu, une partie importante de notre temps a été consacrée à la lecture et à la compréhension de l'énoncé de ce devoir.
+Il va sans dire que la première lecture ne nous a pas révélé toutes les subtilitées du travail à faire.
+En fait, nous avons plutôt été découragés face à l'étendue des données à analyser.
+Cependant, nous avons pris notre courage à deux mains et, au bout de plusieurs relectures, les tâches à réaliser ont commencé à se concrétiser.
+À noter que cela n’aurait pas été possible sans l’aide de l’un de nos amis en commun.
+Nous profitons donc de cette section du rapport pour lui adresser quelques mots de remerciements.
+
+\section{Le code fourni}
+
+Continuant à avancer, nous avons été pris de la même impression qu'à l'étape précédente : surpris par la quantité de données à analyser dans le code fourni.
+Heureusement, grâce à notre compréhension acquise à l'aide de l'énoncé, nous savions à peu près déjà là où regarder dans le code.
+C'est ainsi moins de notre temps qui a été consacré à la lecture, sans compter la contribution des commentaires de la forme
+\begin{verbatim}
+    -- ¡¡COMPLÉTER ICI!!
+\end{verbatim}
+qui ont fortement accéléré l'opération de recherche.
+Maintenant que l'on savait quelles fonctions compléter, nous avons décidé d'étudier le fonctionnement de chacune d'entre-elles, et plus précisement leur type.
+En effet, nous avons remarqué que les trois fonctions de conversion de Sexp à Lambda, s2t, s2l et s2d, étaient toutes de type
+\begin{verbatim}
+    Sexp -> ...
+\end{verbatim}
+Nous avons donc naturellement investigué le type Sexp qui est défini plus haut dans le code à l'emplacement de data Sexp.
+Puis l'on s'est interessés aux types de retour de ces trois fonctions, c'est-à-dire Ltype, Lexp et Ldec, respectivement. Nous avons fait de même avec les autres fonctions à compléter et enfin le temps était venu de se mettre au travail.
+
+\section{Le travail}
+
+\subsection{s2t}
+La version initiale de s2t traite uniquement le cas où l'argument est le symbole "Int". Notre première version de s2t ajoute un cas de pattern matching où l'argument est la liste Scons Snil int. Nous avons ensuite défini la fonction
+\begin{verbatim}
+    s2slist :: Sexp -> [Sexp]
+\end{verbatim}
+afin de pouvoir gérer les différents autres cas de la Sexp dans la fonction s2t. Ainsi, Notre deuxième version introduit les cas où l'argument est une liste (Scons). Pour cela, nous avons ajouté la fonction auxiliaire
+\begin{verbatim}
+    sList2Ltype :: [Sexp] -> Ltype
+\end{verbatim}
+afin de faire usage de récursion sur le tableau de Sexp obtenu avec s2slist.
+La version finale inclut également une gestion d'erreurs pour les types inconnus, où une erreur est renvoyée avec un message indiquant le type Psil inconnu.
+
+Nous avons cru comprendre que le format demandé pour les types était composé d'au plus une flèche, donc quelque chose comme (+ 2) aura un type "(Int Int -> Int)"
+
+\subsection{s2l}
+s2l est de loin la fonction qui nous a donné le plus de fil à retordre. En fin de compte, nous avons du en créer au moins 5 versions. Notre approche initiale de pattern matching primitf a été prometteur jusqu'à ce qu'on réalise que cette approche ne fonctionne pas vraiment. 
+
+Nous avons donc ensuite essayé d'appliquer la même technique qui avait été recommendée par Maxim Bernard dans le post Studium " En réponse à Lucas Guillon Re: TP1 s2t par Maxim Bernard, lundi 29 mai 2023, 18:01".
+
+Cela dit, cette approche se révéla être trop simple et nous avons continué de tourner en rond. En transformant la sexp en liste de sexp avec notre fonction s2slist, nous perdions toutes l'information de nesting. Comme a dit ChatGPT, la sexp devenait "flat" et perdait l'information dont on avait besoin. Il fallait trouver quelque chose d'autre. 
+
+Un après-midi, nous étions en train de travailler à une table au pavillon André-Aisenstadt. Là, un étudiant que nous connaissons et qui avait fait le cours précédemment et venu nous voir. Après lui avoir montré notre code et notre approche pour s2l, il nous a fait comprendre de manière définitive que notre approche n'était pas la bonne. La quête se poursuivit.
+
+Après une discussion avec un membre d'une autre équipe, nous avons appris l'existence d'un repository github, une mine d'or ou une oasis dans notre situation. Merci à Philippe Gabriel et son repo IFT2035. Sans lui, je ne sais pas ce que nous aurions fait. En étudiant le code de ce merveilleux individu, nous avons pu voir comment s2l devait être implémenté. 
+
+Après quelques heures d'adaptation, nous avons finalement reussi à faire 
+\begin{verbatim}
+ghci> s2l $ sexpOf "( psil exp )"
+\end{verbatim}
+
+de toutes les expressions pertinentes, ce qui nous a rempli de joie. Il n'était que $00:30$ après tout.
+
+
+\subsection{s2d}
+Puisque le type de retour de s2d n'est pas défini récursivement, il n'y a que deux cas à considérer. Or, l'un de ceux-ci est déjà présent dans la version initiale de s2d, soit le cas de déclaration de définition. Nous avons donc ajouté le second cas : si l'expression Sexp est une liste qui correspond à la déclaration de type, la fonction s2d utilise le motif
+\begin{verbatim}
+    (Scons (Scons (Scons Snil (Ssym "dec")) (Ssym v)) t)
+\end{verbatim}
+pour extraire le nom de la variable v et le type t. Elle crée ensuite une déclaration Ldec en utilisant le nom de la variable et en appelant la fonction s2t pour convertir le type en une expression Ltype.
+
+\subsection{check}
+
+Il y avait une annotation COMPLETER ICI sous la fonction check, mais nous n'avons pas eu à ajouter de définition pour que le tout fonctionne. Après avoir consulté un membre d'une autre équipe à ce sujet, nous avons conclu que nous n'étions pas les seuls à avoir laissé la fonction check telle quelle.
+
+\subsection{synth}
+
+Pour élaborer la fonction synth, nous avons utilisé les regles d'inférences qui étaient données dans l'énoncé. Avec un peu de debugging et d'aide de ChatGPT, nous en sommes venu à bout et il semble que la fonction fonctionne. 
+
+\subsection{eval}
+
+La fonction eval comporte un cas plus difficile, les autres étant triviaux. 
+L'évaluation de Llet, Lhastype et Lfun sont très simples. Ce n'est pas le cas pour l'évaluation de Lapp. ChatGPT nous a aidé a créer le deuxième case imbriqué qui continue l'évaluation du Vop. 
+
+\subsection{process\_decl}
+Trois des quatre cas de process\_decl étaient déjà fournis dans le code initial. Nous avons donc essayé d'implémenter le quatrième et dernier cas par nous-même.
+Il s'agit du cas où l'on doit instancier une variable qui est en attente de déclaration.
+Tout semblait alors fonctionner, jusqu'à ce l'on essaie un cas de récursion.
+C'est alors que notre fonction process\_decl a échoué et que l'on a été contraint de trouver une solution.
+Peu après, alors que l'on cherchait toujours, l'étudiant Zi Kai Qin a posté sur Studium une question intitulée "Fonctions anonymes récursives" qui donnait la solution exacte à notre problème.
+Nous avons donc finalement utilisé sa version de process\_decl dans notre travail.
+
+Il est important de noter que cette fonction, bien qu'elle fasse fonctionner la récursion, cause un autre problème. Il est maintenant possible de declarer une variable et de definir celle ci avec le mauvais type sans que le programme signale une erreur, ce qui n'était pas un problème dans notre version. 
+
+\section{Modifications}
+
+Nous avons apporté certaines modifications à la syntaxe de l'appel de l'expression "Let". À noter que ce n'est pas faute d'avoir essayé, car nous nous sommes en effet cassé la tête pendant plusieurs heures afin d'implémenter le format doublement parenthèsé, mais sans succès. Ainsi, plutôt que de faire l'appel tel que demandé :
+\begin{verbatim}
+    (let ((x 5)) f),
+\end{verbatim}
+nous écrivons à la place :
+\begin{verbatim}
+    (let x 5 f) 
+\end{verbatim}
+Par conséquent, le premier exemple contenant un let dans exemple.psil :
+\begin{verbatim}
+    (def r7 (let ((x 5)) (* x 4)))  
+\end{verbatim}
+ne fonctionne pas. Cependant, ce n'est parce que notre let est mal implémenté, mais plutôt parce que sa syntaxe est différente.
+
+\section{Bibliographie}\label{sec:biblio}
+
+\subsection{Guides Haskell}
+\begin{itemize}
+  \item http://learnyouahaskell.com/chapters
+  \item https://www.haskell.org/onlinereport/index.html
+  \item https://www.cis.upenn.edu/~cis1940/spring13/lectures.html
+\end{itemize}
+
+\subsection{Exercices Haskell}
+\begin{itemize}
+  \item https://exercism.org/tracks/haskell/exercises
+  \item http://web4.ensiie.fr/~gacogne/haskell.pdf
+  \item https://studium.umontreal.ca/pluginfile.php/8196209/mod\_resource/content/4/GuideHaskell.pdf
+\end{itemize}
+
+\subsection{Liens Github}
+\begin{itemize}
+  \item Notre projet : https://github.com/Mastalp/IFT2035-1/tree/main
+  \\
+  rendu publique le 3 juin à HHhMM
+  \item Projet de phil-gab99 : https://github.com/phil-gab99/IFT2035-TP1/blob/main/psil.hs
+\end{itemize}
+
+\subsection{Autres liens}
+\begin{itemize}
+  \item "Fonctions anonymes récursives" : https://studium.umontreal.ca/mod/forum/discuss.php?d=1315760
+\end{itemize}
+
+\section{Remerciements}
+\centerline{Philippe Gabriel}
+\centerline{Zi Kai Qin}
+
+
+\end{document}
